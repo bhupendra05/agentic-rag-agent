@@ -240,6 +240,12 @@ def main():
                 print("Please try again or type 'help' for assistance.\n")
                 continue
 
+    except KeyboardInterrupt:
+        # Handle Ctrl+C from main loop
+        print("\n\nGoodbye! 👋")
+    except Exception as e:
+        print(f"\n❌ Unexpected error in main loop: {e}")
+
 
 # ============================================================================
 # SECTION 4: Entry Point
