@@ -3,635 +3,843 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Agent - Live Workflow</title>
+    <title>RAG Agent — Live Workflow</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            min-height: 90vh;
-        }
-
-        .header {
-            grid-column: 1 / -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        /* Chat Section */
-        .chat-section {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            background: #f8f9fa;
-            border-right: 1px solid #e0e0e0;
+            overflow: hidden;
         }
 
-        .chat-title {
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
+        /* HEADER */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .app-header h1 { font-size: 18px; font-weight: 700; }
+        .app-header p  { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+        /* TWO-COLUMN LAYOUT */
+        .app-main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            overflow: hidden;
+        }
+
+        /* CHAT PANEL */
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            overflow: hidden;
+        }
+
+        .panel-hdr {
+            padding: 11px 16px;
+            border-bottom: 1px solid #30363d;
+            font-size: 12px;
             font-weight: 600;
-            color: #333;
+            color: #8b949e;
+            letter-spacing: .4px;
+            flex-shrink: 0;
         }
 
         .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 14px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-        }
-
-        .message {
-            display: flex;
             gap: 10px;
-            animation: slideIn 0.3s ease-out;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .msg { display: flex; animation: fadeUp .2s ease-out; }
+        .msg.user { justify-content: flex-end; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(5px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message-content {
-            max-width: 80%;
-            padding: 12px 15px;
+        .bubble {
+            max-width: 85%;
+            padding: 9px 13px;
             border-radius: 12px;
-            line-height: 1.5;
-            font-size: 14px;
-        }
-
-        .message.user .message-content {
-            background: #667eea;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message.assistant .message-content {
-            background: white;
-            color: #333;
-            border: 1px solid #e0e0e0;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message.system .message-content {
-            background: #f0f0f0;
-            color: #666;
             font-size: 13px;
-            font-style: italic;
-            text-align: center;
+            line-height: 1.55;
         }
+        .msg.user      .bubble { background:#1f6feb; color:#fff; border-bottom-right-radius:3px; }
+        .msg.assistant .bubble { background:#21262d; color:#e6edf3; border:1px solid #30363d; border-bottom-left-radius:3px; }
+        .msg.system    .bubble { background:transparent; color:#8b949e; font-size:11px; font-style:italic; border:1px dashed #30363d; width:100%; max-width:100%; text-align:center; }
 
-        .input-area {
-            padding: 20px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 10px;
-        }
+        .chat-controls { padding: 8px 14px 0; display:flex; gap:8px; flex-shrink:0; }
 
-        #messageInput {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        #messageInput:focus {
-            border-color: #667eea;
-        }
-
-        #sendBtn {
-            padding: 12px 25px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        #sendBtn:hover {
-            background: #5568d3;
-        }
-
-        #sendBtn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .controls {
-            padding: 10px 20px 0;
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-small {
-            padding: 8px 12px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
+        .btn-sm {
+            padding: 5px 11px;
+            background: #21262d;
+            border: 1px solid #30363d;
             border-radius: 6px;
+            color: #8b949e;
             cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s;
+            font-size: 11px;
+            transition: all .2s;
         }
+        .btn-sm:hover { background:#30363d; color:#e6edf3; }
 
-        .btn-small:hover {
-            background: #e0e0e0;
-        }
-
-        /* Workflow Section */
-        .workflow-section {
+        .chat-input-row {
+            padding: 10px 14px;
             display: flex;
-            flex-direction: column;
-            background: #fff;
-            padding: 20px;
-        }
-
-        .workflow-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 16px;
-        }
-
-        .workflow-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow-y: auto;
-        }
-
-        .workflow-step {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #e0e0e0;
-            transition: all 0.3s;
-        }
-
-        .workflow-step.active {
-            background: #e3f2fd;
-            border-left-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-        }
-
-        .workflow-step.complete {
-            border-left-color: #4caf50;
-        }
-
-        .workflow-step.error {
-            border-left-color: #f44336;
-            background: #ffebee;
-        }
-
-        .step-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            font-size: 18px;
+            gap: 8px;
+            border-top: 1px solid #30363d;
             flex-shrink: 0;
         }
 
-        .workflow-step.active .step-icon {
-            background: #667eea;
-            animation: pulse 1s infinite;
-        }
-
-        .workflow-step.complete .step-icon {
-            background: #4caf50;
-        }
-
-        .workflow-step.error .step-icon {
-            background: #f44336;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
-            }
-            50% {
-                box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
-            }
-        }
-
-        .step-content {
+        #msgInput {
             flex: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 9px 13px;
+            font-size: 13px;
+            color: #e6edf3;
+            outline: none;
+            transition: border-color .2s;
         }
+        #msgInput:focus { border-color: #667eea; }
+        #msgInput::placeholder { color: #484f58; }
 
-        .step-name {
+        #sendBtn {
+            padding: 9px 18px;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
             font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-            font-size: 14px;
+            cursor: pointer;
+            transition: background .2s;
         }
+        #sendBtn:hover { background: #5a67d8; }
+        #sendBtn:disabled { background:#30363d; color:#484f58; cursor:not-allowed; }
 
-        .step-details {
+        /* WORKFLOW PANEL */
+        .workflow-panel {
             display: flex;
-            gap: 20px;
-            font-size: 12px;
-            color: #666;
+            flex-direction: column;
+            background: #0d1117;
+            overflow: hidden;
         }
 
-        .step-duration {
+        .workflow-hdr {
+            padding: 11px 16px;
+            border-bottom: 1px solid #30363d;
             display: flex;
             align-items: center;
-            gap: 5px;
-        }
-
-        .step-docs {
-            background: rgba(102, 126, 234, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: #667eea;
-        }
-
-        /* Memory Status */
-        .memory-status {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-        }
-
-        .memory-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
-            font-size: 13px;
-        }
-
-        .memory-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-
-        .memory-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            transition: width 0.3s;
-        }
-
-        .memory-info {
-            display: flex;
             justify-content: space-between;
-            font-size: 12px;
-            color: #666;
+            flex-shrink: 0;
+        }
+        .workflow-hdr-title { font-size: 12px; font-weight: 600; color: #8b949e; }
+
+        .exec-badge {
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #21262d;
+            color: #8b949e;
+            border: 1px solid #30363d;
+        }
+        .exec-badge.running { background:#0d2a4a; color:#79c0ff; border-color:#1f6feb; }
+        .exec-badge.done    { background:#0a2515; color:#56d364; border-color:#238636; }
+        .exec-badge.error   { background:#2e1010; color:#f85149; border-color:#da3633; }
+
+        /* CANVAS WRAPPER — dot-grid like n8n */
+        .canvas-wrapper {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background-color: #0d1117;
+            background-image: radial-gradient(circle, #30363d 1px, transparent 1px);
+            background-size: 24px 24px;
         }
 
-        /* Loading spinner */
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        /* CANVAS — fixed coordinate space */
+        .canvas {
+            position: relative;
+            width: 720px;
+            height: 560px;
+            margin: 24px auto;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* SVG overlay */
+        #svg-conn {
+            position: absolute;
+            top: 0; left: 0;
+            width: 720px; height: 560px;
+            pointer-events: none;
+            z-index: 1;
+            overflow: visible;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-
-            .chat-section {
-                border-right: none;
-                border-bottom: 1px solid #e0e0e0;
-                min-height: 50vh;
-            }
-
-            .workflow-section {
-                min-height: 50vh;
-            }
+        /* Connections */
+        .conn {
+            fill: none;
+            stroke: #30363d;
+            stroke-width: 2;
+            transition: stroke .3s;
         }
+        .conn.tool-conn { stroke-dasharray: 5 3; }
+
+        .conn.flowing {
+            stroke: #667eea;
+            stroke-dasharray: 9 5 !important;
+            animation: dashFlow .45s linear infinite;
+        }
+        .conn.done { stroke: #238636 !important; stroke-dasharray: none !important; animation: none; }
+
+        @keyframes dashFlow { to { stroke-dashoffset: -14; } }
+
+        /* Flow dots */
+        .flow-dot { opacity: 0; transition: opacity .2s; }
+
+        /* NODES */
+        .node {
+            position: absolute;
+            z-index: 10;
+            background: #161b22;
+            border: 1.5px solid #30363d;
+            border-radius: 10px;
+            padding: 10px 12px;
+            text-align: center;
+            transition: border-color .25s, background .25s, box-shadow .25s;
+            cursor: default;
+            user-select: none;
+        }
+        .node:hover { border-color: #484f58; }
+
+        .node.active {
+            border-color: #667eea;
+            background: #14193a;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.2), 0 0 22px rgba(102,126,234,.35);
+        }
+        .node.active .node-icon { animation: iconPop .7s ease-in-out infinite; }
+
+        @keyframes iconPop {
+            0%,100% { transform: scale(1); }
+            50%      { transform: scale(1.18); }
+        }
+
+        .node.done  { border-color: #238636; background: #0a2515; }
+        .node.error { border-color: #da3633; background: #2e1010; }
+
+        /* Trigger node gets dashed border like n8n */
+        .node.trigger { border-style: dashed; border-color: #444; }
+        .node.trigger.done { border-style: solid; }
+
+        /* Agent node — slightly bigger */
+        .node.agent { border-width: 2px; }
+
+        .node-icon  { font-size: 22px; display: block; margin-bottom: 5px; }
+        .node-name  { font-size: 11px; font-weight: 700; color: #e6edf3; white-space: nowrap; }
+        .node-type  { font-size: 10px; color: #8b949e; margin-top: 2px; }
+        .node-timing { font-size: 10px; color: #667eea; margin-top: 4px; min-height: 13px; }
+
+        /* Connection type label (like n8n "Tool" badge) */
+        .conn-label {
+            position: absolute;
+            font-size: 9px;
+            color: #484f58;
+            background: #0d1117;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid #30363d;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* STEP LOG */
+        .step-log {
+            border-top: 1px solid #30363d;
+            background: #161b22;
+            padding: 8px 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 48px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .step-empty { color: #484f58; font-size: 11px; font-style: italic; }
+
+        .step-tag {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            animation: fadeUp .2s ease-out;
+        }
+        .step-tag.done  { background:#0a2515; border-color:#238636; color:#56d364; }
+        .step-tag.error { background:#2e1010; border-color:#da3633; color:#f85149; }
+
+        /* MEMORY BAR */
+        .mem-row {
+            border-top: 1px solid #30363d;
+            padding: 7px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .mem-label  { font-size: 11px; color:#8b949e; white-space:nowrap; min-width:110px; }
+        .mem-track  { flex:1; height:4px; background:#21262d; border-radius:2px; overflow:hidden; }
+        .mem-fill   { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:2px; transition:width .4s; }
+        .mem-pct    { font-size:11px; color:#8b949e; min-width:30px; text-align:right; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>🤖 RAG Agent - Live Workflow</h1>
-            <p>Chat with AI - Watch the pipeline work in real-time</p>
-        </div>
 
-        <!-- Chat Section -->
-        <div class="chat-section">
-            <div class="chat-title">💬 Chat</div>
-
-            <div class="messages" id="messagesContainer">
-                <div class="message system">
-                    <div class="message-content">
-                        Welcome! Ask me about Singapore attractions, tours, and packages. 🌏
-                    </div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <button class="btn-small" onclick="clearChat()">🗑️ Clear</button>
-                <button class="btn-small" onclick="toggleMemory()">📊 Memory</button>
-            </div>
-
-            <div class="input-area">
-                <input
-                    type="text"
-                    id="messageInput"
-                    placeholder="Ask me something about Singapore..."
-                    onkeypress="if(event.key==='Enter') sendMessage()"
-                />
-                <button id="sendBtn" onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-
-        <!-- Workflow Section -->
-        <div class="workflow-section">
-            <div class="workflow-title">⚙️ RAG Pipeline</div>
-
-            <div class="workflow-container" id="workflowContainer">
-                <!-- Workflow steps will be rendered here -->
-            </div>
-
-            <!-- Memory Status -->
-            <div class="memory-status">
-                <div class="memory-title">Memory Status</div>
-                <div class="memory-bar">
-                    <div class="memory-fill" id="memoryFill" style="width: 0%"></div>
-                </div>
-                <div class="memory-info">
-                    <span>Messages: <strong id="memoryCount">0</strong>/20</span>
-                    <span id="memoryPercent">0%</span>
-                </div>
-            </div>
-        </div>
+<!-- HEADER -->
+<header class="app-header">
+    <div>
+        <h1>🤖 RAG Agent — Live Workflow</h1>
+        <p>Chat with AI · Watch the pipeline work in real-time</p>
     </div>
+</header>
 
-    <script>
-        // ====================================================================
-        // SECTION 1: Workflow Rendering
-        // ====================================================================
+<main class="app-main">
 
-        const WORKFLOW_STEPS = [
-            {
-                id: 'memory',
-                name: 'Store Input',
-                icon: '💾',
-                description: 'Save question to memory'
-            },
-            {
-                id: 'search',
-                name: 'Search Knowledge Base',
-                icon: '🔍',
-                description: 'Find relevant documents in Pinecone'
-            },
-            {
-                id: 'augment',
-                name: 'Augment Prompt',
-                icon: '📝',
-                description: 'Add context to the question'
-            },
-            {
-                id: 'llm',
-                name: 'Generate Response',
-                icon: '🧠',
-                description: 'Get answer from Gemini LLM'
-            },
-            {
-                id: 'memory_save',
-                name: 'Save Response',
-                icon: '💾',
-                description: 'Store response to memory'
-            }
-        ];
+    <!-- ── CHAT PANEL ── -->
+    <section class="chat-panel">
+        <div class="panel-hdr">💬 Chat</div>
 
-        function initWorkflow() {
-            const container = document.getElementById('workflowContainer');
-            container.innerHTML = WORKFLOW_STEPS
-                .map(step => `
-                    <div class="workflow-step" id="step-${step.id}">
-                        <div class="step-icon">${step.icon}</div>
-                        <div class="step-content">
-                            <div class="step-name">${step.name}</div>
-                            <div class="step-details">
-                                <span>${step.description}</span>
-                                <span class="step-duration" id="duration-${step.id}"></span>
-                            </div>
-                        </div>
-                    </div>
-                `)
-                .join('');
-        }
+        <div class="messages" id="messages">
+            <div class="msg system">
+                <div class="bubble">Welcome! Ask me anything about Singapore tours 🌏</div>
+            </div>
+        </div>
 
-        // ====================================================================
-        // SECTION 2: Chat Functions
-        // ====================================================================
+        <div class="chat-controls">
+            <button class="btn-sm" onclick="clearChat()">🗑 Clear</button>
+            <button class="btn-sm" onclick="showMemory()">📊 Memory</button>
+        </div>
 
-        function addMessage(content, role = 'assistant') {
-            const container = document.getElementById('messagesContainer');
-            const messageEl = document.createElement('div');
-            messageEl.className = `message ${role}`;
-            messageEl.innerHTML = `<div class="message-content">${escapeHtml(content)}</div>`;
-            container.appendChild(messageEl);
-            container.scrollTop = container.scrollHeight;
-        }
+        <div class="chat-input-row">
+            <input id="msgInput" type="text"
+                placeholder="Ask me something about Singapore..."
+                onkeydown="if(event.key==='Enter') sendMessage()"/>
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </section>
 
-        function updateWorkflowStep(stepId, data) {
-            const stepEl = document.getElementById(`step-${stepId}`);
-            if (!stepEl) return;
+    <!-- ── WORKFLOW PANEL ── -->
+    <section class="workflow-panel">
+        <div class="workflow-hdr">
+            <span class="workflow-hdr-title">⚙️ RAG Pipeline · n8n-style</span>
+            <div class="exec-badge" id="execBadge">Idle</div>
+        </div>
 
-            // Update status
-            stepEl.classList.remove('active', 'complete', 'error');
-            if (data.status === 'complete') {
-                stepEl.classList.add('complete');
-            } else if (data.status === 'error') {
-                stepEl.classList.add('error');
-            } else {
-                stepEl.classList.add('active');
-            }
+        <!-- DOT-GRID CANVAS -->
+        <div class="canvas-wrapper">
+            <div class="canvas" id="canvas">
 
-            // Update duration
-            const durationEl = document.getElementById(`duration-${stepId}`);
-            if (data.duration) {
-                durationEl.textContent = `${data.duration}ms`;
-            }
+                <!-- ══ SVG CONNECTIONS ══ -->
+                <svg id="svg-conn" viewBox="0 0 720 560"
+                     xmlns="http://www.w3.org/2000/svg"
+                     xmlns:xlink="http://www.w3.org/1999/xlink">
+                    <defs>
+                        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#30363d"/>
+                        </marker>
+                        <marker id="arr-flow" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#667eea"/>
+                        </marker>
+                        <marker id="arr-done" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#238636"/>
+                        </marker>
+                    </defs>
 
-            // Update doc count
-            if (data.docs_found !== undefined) {
-                const detailsEl = stepEl.querySelector('.step-details');
-                detailsEl.innerHTML += ` <span class="step-docs">${data.docs_found} docs found</span>`;
-            }
-        }
+                    <!-- Main flow: Chat Input → RAG Agent -->
+                    <path id="conn-input-agent"  class="conn"
+                          d="M 143 175 C 210 175 210 163 278 163"
+                          marker-end="url(#arr)"/>
 
-        function updateMemoryStatus(memory) {
-            document.getElementById('memoryFill').style.width = memory.percentage + '%';
-            document.getElementById('memoryCount').textContent = memory.total_messages;
-            document.getElementById('memoryPercent').textContent = Math.round(memory.percentage) + '%';
-        }
+                    <!-- Main flow: RAG Agent → Response -->
+                    <path id="conn-agent-output" class="conn"
+                          d="M 428 163 C 495 163 495 175 558 175"
+                          marker-end="url(#arr)"/>
 
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            const sendBtn = document.getElementById('sendBtn');
+                    <!-- Tool: RAG Agent → Memory (down-left) -->
+                    <path id="conn-agent-memory" class="conn tool-conn"
+                          d="M 308 210 C 308 278 88 278 88 330"
+                          marker-end="url(#arr)"/>
 
-            if (!message) return;
+                    <!-- Tool: RAG Agent → Pinecone (straight down) -->
+                    <path id="conn-agent-pinecone" class="conn tool-conn"
+                          d="M 353 210 C 353 268 353 268 353 330"
+                          marker-end="url(#arr)"/>
 
-            // Add user message to chat
-            addMessage(message, 'user');
-            input.value = '';
-            sendBtn.disabled = true;
+                    <!-- Tool: RAG Agent → Gemini (down-right) -->
+                    <path id="conn-agent-gemini" class="conn tool-conn"
+                          d="M 398 210 C 398 278 612 278 612 330"
+                          marker-end="url(#arr)"/>
 
-            // Show loading state
-            addMessage('⏳ Processing...', 'system');
+                    <!-- Pinecone → HF Embeddings (straight down) -->
+                    <path id="conn-pinecone-embed" class="conn tool-conn"
+                          d="M 353 408 L 353 445"
+                          marker-end="url(#arr)"/>
 
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message })
-                });
+                    <!-- ── FLOW DOTS ── -->
+                    <circle class="flow-dot" id="dot-input-agent"   r="5" fill="#667eea">
+                        <animateMotion id="anim-input-agent"   dur="0.65s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-input-agent"   xlink:href="#conn-input-agent"/>
+                        </animateMotion>
+                    </circle>
+                    <circle class="flow-dot" id="dot-agent-output"  r="5" fill="#667eea">
+                        <animateMotion id="anim-agent-output"  dur="0.65s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-agent-output"  xlink:href="#conn-agent-output"/>
+                        </animateMotion>
+                    </circle>
+                    <circle class="flow-dot" id="dot-agent-memory"  r="5" fill="#667eea">
+                        <animateMotion id="anim-agent-memory"  dur="0.85s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-agent-memory"  xlink:href="#conn-agent-memory"/>
+                        </animateMotion>
+                    </circle>
+                    <circle class="flow-dot" id="dot-agent-pinecone" r="5" fill="#667eea">
+                        <animateMotion id="anim-agent-pinecone" dur="0.65s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-agent-pinecone" xlink:href="#conn-agent-pinecone"/>
+                        </animateMotion>
+                    </circle>
+                    <circle class="flow-dot" id="dot-agent-gemini"  r="5" fill="#667eea">
+                        <animateMotion id="anim-agent-gemini"  dur="0.85s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-agent-gemini"  xlink:href="#conn-agent-gemini"/>
+                        </animateMotion>
+                    </circle>
+                    <circle class="flow-dot" id="dot-pinecone-embed" r="5" fill="#667eea">
+                        <animateMotion id="anim-pinecone-embed" dur="0.45s" repeatCount="indefinite" begin="indefinite">
+                            <mpath href="#conn-pinecone-embed" xlink:href="#conn-pinecone-embed"/>
+                        </animateMotion>
+                    </circle>
 
-                const data = await response.json();
+                    <!-- "Tool" labels on dashed connections -->
+                    <text x="190" y="263" font-size="9" fill="#484f58" text-anchor="middle" font-family="monospace">Tool</text>
+                    <text x="353" y="263" font-size="9" fill="#484f58" text-anchor="middle" font-family="monospace">Tool</text>
+                    <text x="510" y="263" font-size="9" fill="#484f58" text-anchor="middle" font-family="monospace">Tool</text>
+                    <text x="353" y="430" font-size="9" fill="#484f58" text-anchor="middle" font-family="monospace">Embed</text>
+                </svg>
 
-                // Remove loading message
-                const messagesContainer = document.getElementById('messagesContainer');
-                const lastMessage = messagesContainer.lastChild;
-                if (lastMessage && lastMessage.classList.contains('system')) {
-                    lastMessage.remove();
-                }
+                <!-- ══ NODES ══ -->
 
-                if (data.success) {
-                    // Update workflow steps
-                    initWorkflow();
-                    for (const step of data.workflow_steps) {
-                        updateWorkflowStep(step.step, step);
-                    }
+                <!-- Chat Input (trigger) -->
+                <div class="node trigger" id="node-chatinput"
+                     style="left:18px; top:138px; width:125px;">
+                    <span class="node-icon">💬</span>
+                    <div class="node-name">Chat Input</div>
+                    <div class="node-type">When message received</div>
+                    <div class="node-timing" id="tim-chatinput"></div>
+                </div>
 
-                    // Update memory
-                    updateMemoryStatus(data.memory);
+                <!-- RAG Agent (main orchestrator) -->
+                <div class="node agent" id="node-agent"
+                     style="left:278px; top:118px; width:150px;">
+                    <span class="node-icon">🤖</span>
+                    <div class="node-name">RAG Agent</div>
+                    <div class="node-type">AI Orchestrator</div>
+                    <div class="node-timing" id="tim-agent"></div>
+                </div>
 
-                    // Add bot response
-                    addMessage(data.response, 'assistant');
-                } else {
-                    addMessage(`Error: ${data.error}`, 'system');
-                }
-            } catch (error) {
-                addMessage(`Error: ${error.message}`, 'system');
-            } finally {
-                sendBtn.disabled = false;
-                input.focus();
-            }
-        }
+                <!-- Response (output) -->
+                <div class="node" id="node-response"
+                     style="left:558px; top:138px; width:125px;">
+                    <span class="node-icon">📤</span>
+                    <div class="node-name">Response</div>
+                    <div class="node-type">Output</div>
+                    <div class="node-timing" id="tim-response"></div>
+                </div>
 
-        async function clearChat() {
-            if (!confirm('Clear conversation history?')) return;
+                <!-- Memory -->
+                <div class="node" id="node-memory"
+                     style="left:23px; top:330px; width:130px;">
+                    <span class="node-icon">💾</span>
+                    <div class="node-name">Memory</div>
+                    <div class="node-type">Conversation Store</div>
+                    <div class="node-timing" id="tim-memory"></div>
+                </div>
 
-            try {
-                await fetch('/api/clear', { method: 'POST' });
-                document.getElementById('messagesContainer').innerHTML = `
-                    <div class="message system">
-                        <div class="message-content">
-                            Conversation cleared. Start fresh! 🎉
-                        </div>
-                    </div>
-                `;
-                updateMemoryStatus({ total_messages: 0, percentage: 0 });
-                initWorkflow();
-            } catch (error) {
-                alert('Error clearing chat: ' + error.message);
-            }
-        }
+                <!-- Pinecone -->
+                <div class="node" id="node-pinecone"
+                     style="left:288px; top:330px; width:130px;">
+                    <span class="node-icon">🔍</span>
+                    <div class="node-name">Pinecone</div>
+                    <div class="node-type">Vector Search</div>
+                    <div class="node-timing" id="tim-pinecone"></div>
+                </div>
 
-        async function toggleMemory() {
-            try {
-                const response = await fetch('/api/memory');
-                const memory = await response.json();
-                const msg = `Memory: ${memory.total_messages}/${memory.max_capacity} messages (${Math.round(memory.percentage)}%)`;
-                alert(msg);
-            } catch (error) {
-                alert('Error getting memory status: ' + error.message);
-            }
-        }
+                <!-- Gemini LLM -->
+                <div class="node" id="node-gemini"
+                     style="left:548px; top:330px; width:130px;">
+                    <span class="node-icon">✨</span>
+                    <div class="node-name">Gemini LLM</div>
+                    <div class="node-type">Language Model</div>
+                    <div class="node-timing" id="tim-gemini"></div>
+                </div>
 
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
+                <!-- HF Embeddings -->
+                <div class="node" id="node-hfembed"
+                     style="left:288px; top:445px; width:130px;">
+                    <span class="node-icon">🔢</span>
+                    <div class="node-name">HF Embeddings</div>
+                    <div class="node-type">Sentence Transformers</div>
+                    <div class="node-timing" id="tim-hfembed"></div>
+                </div>
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            initWorkflow();
-            document.getElementById('messageInput').focus();
+            </div><!-- /canvas -->
+        </div><!-- /canvas-wrapper -->
+
+        <!-- STEP LOG -->
+        <div class="step-log" id="stepLog">
+            <span class="step-empty">Run a query to see execution log</span>
+        </div>
+
+        <!-- MEMORY BAR -->
+        <div class="mem-row">
+            <span class="mem-label">🧠 Memory: <strong id="memCount">0</strong>/20</span>
+            <div class="mem-track"><div class="mem-fill" id="memFill" style="width:0%"></div></div>
+            <span class="mem-pct" id="memPct">0%</span>
+        </div>
+
+    </section>
+</main>
+
+<script>
+// ════════════════════════════════════════════════════════
+// WORKFLOW ANIMATION ENGINE
+// ════════════════════════════════════════════════════════
+
+const STEP_MAP = {
+    memory: {
+        nodes: ['node-memory'],
+        conns: ['conn-agent-memory'],
+        dots:  ['dot-agent-memory'],
+        anims: ['anim-agent-memory'],
+        timEl: 'tim-memory'
+    },
+    search: {
+        nodes: ['node-pinecone', 'node-hfembed'],
+        conns: ['conn-agent-pinecone', 'conn-pinecone-embed'],
+        dots:  ['dot-agent-pinecone', 'dot-pinecone-embed'],
+        anims: ['anim-agent-pinecone', 'anim-pinecone-embed'],
+        timEl: 'tim-pinecone'
+    },
+    augment: {
+        nodes: ['node-agent'],
+        conns: [],
+        dots:  [],
+        anims: [],
+        timEl: 'tim-agent'
+    },
+    llm: {
+        nodes: ['node-gemini'],
+        conns: ['conn-agent-gemini'],
+        dots:  ['dot-agent-gemini'],
+        anims: ['anim-agent-gemini'],
+        timEl: 'tim-gemini'
+    },
+    memory_save: {
+        nodes: ['node-memory', 'node-response'],
+        conns: ['conn-agent-output'],
+        dots:  ['dot-agent-output'],
+        anims: ['anim-agent-output'],
+        timEl: 'tim-response'
+    }
+};
+
+const ALL_NODES = ['node-chatinput','node-agent','node-response','node-memory','node-pinecone','node-gemini','node-hfembed'];
+const ALL_CONNS = ['conn-input-agent','conn-agent-output','conn-agent-memory','conn-agent-pinecone','conn-agent-gemini','conn-pinecone-embed'];
+const ALL_DOTS  = ['dot-input-agent','dot-agent-output','dot-agent-memory','dot-agent-pinecone','dot-agent-gemini','dot-pinecone-embed'];
+
+// Dot JS fallback (for browsers where beginElement may not fire)
+const dotAnimations = {};
+
+function startDotJS(dotId, pathId) {
+    const dot  = document.getElementById(dotId);
+    const path = document.getElementById(pathId);
+    if (!dot || !path) return;
+    const len = path.getTotalLength();
+    let t = 0, last = 0;
+    dotAnimations[dotId] = true;
+    dot.setAttribute('opacity','1');
+    function frame(ts) {
+        if (!dotAnimations[dotId]) return;
+        const dt = ts - last; last = ts;
+        t = (t + dt / 750) % 1;
+        const pt = path.getPointAtLength(t * len);
+        dot.setAttribute('cx', pt.x);
+        dot.setAttribute('cy', pt.y);
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+function stopDotJS(dotId) {
+    dotAnimations[dotId] = false;
+    const dot = document.getElementById(dotId);
+    if (dot) dot.setAttribute('opacity','0');
+}
+
+function setNode(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('active','done','error');
+    if (state) el.classList.add(state);
+}
+
+const MARKER = { '': 'url(#arr)', flowing: 'url(#arr-flow)', done: 'url(#arr-done)' };
+
+function setConn(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('flowing','done');
+    if (state) el.classList.add(state);
+    el.setAttribute('marker-end', MARKER[state] || MARKER['']);
+}
+
+function activateDot(dotId, animId, pathId) {
+    const anim = document.getElementById(animId);
+    if (anim) {
+        try {
+            document.getElementById(dotId).setAttribute('opacity','1');
+            anim.beginElement();
+            return;
+        } catch(e) {}
+    }
+    startDotJS(dotId, pathId);
+}
+
+function deactivateDot(dotId) {
+    const anim = document.getElementById(dotId.replace('dot-','anim-'));
+    stopDotJS(dotId);
+}
+
+function resetAll() {
+    ALL_NODES.forEach(id => setNode(id,''));
+    ALL_CONNS.forEach(id => setConn(id,''));
+    ALL_DOTS.forEach(id => {
+        stopDotJS(id);
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('opacity','0');
+    });
+    document.querySelectorAll('.node-timing').forEach(el => el.textContent = '');
+}
+
+// Animate one step, then call next()
+function animateStep(step, next) {
+    const cfg = STEP_MAP[step.step];
+    if (!cfg) { setTimeout(next, 200); return; }
+
+    cfg.nodes.forEach(id => setNode(id, 'active'));
+    cfg.conns.forEach((cId, i) => {
+        setConn(cId, 'flowing');
+        const dotId  = cfg.dots[i];
+        const animId = cfg.anims[i];
+        if (dotId) activateDot(dotId, animId, cId);
+    });
+
+    const dur = Math.max(step.duration || 400, 350);
+    setTimeout(() => {
+        const s = step.status === 'error' ? 'error' : 'done';
+        cfg.nodes.forEach(id => setNode(id, s));
+        cfg.conns.forEach((cId, i) => {
+            setConn(cId, s === 'error' ? '' : 'done');
+            if (cfg.dots[i]) deactivateDot(cfg.dots[i]);
         });
-    </script>
+        if (cfg.timEl && step.duration) {
+            const el = document.getElementById(cfg.timEl);
+            if (el) {
+                el.textContent = step.duration + 'ms';
+                if (step.docs_found !== undefined)
+                    el.textContent += ` · ${step.docs_found} docs`;
+            }
+        }
+        next();
+    }, dur);
+}
+
+function runWorkflow(steps, onDone) {
+    // Phase 0: Chat Input fires
+    setNode('node-chatinput', 'active');
+    setConn('conn-input-agent', 'flowing');
+    activateDot('dot-input-agent', 'anim-input-agent', 'conn-input-agent');
+
+    setTimeout(() => {
+        setNode('node-chatinput', 'done');
+        setConn('conn-input-agent', 'done');
+        deactivateDot('dot-input-agent');
+        setNode('node-agent', 'active');
+
+        // Run steps sequentially
+        let i = 0;
+        function nextStep() {
+            if (i >= steps.length) {
+                setNode('node-agent', 'done');
+                if (onDone) onDone();
+                return;
+            }
+            const step = steps[i++];
+            appendStepTag(step);
+            animateStep(step, nextStep);
+        }
+        nextStep();
+    }, 550);
+}
+
+// ════════════════════════════════════════════════════════
+// STEP LOG
+// ════════════════════════════════════════════════════════
+const STEP_META = {
+    memory:      { icon:'💾', label:'Store Input'    },
+    search:      { icon:'🔍', label:'Search KB'      },
+    augment:     { icon:'📝', label:'Augment Prompt' },
+    llm:         { icon:'✨', label:'Gemini LLM'     },
+    memory_save: { icon:'💾', label:'Save Response'  }
+};
+
+function appendStepTag(step) {
+    const log   = document.getElementById('stepLog');
+    const empty = log.querySelector('.step-empty');
+    if (empty) empty.remove();
+
+    const meta  = STEP_META[step.step] || { icon:'⚙️', label: step.name };
+    const tag   = document.createElement('div');
+    tag.className = `step-tag ${step.status === 'error' ? 'error' : 'done'}`;
+    let txt = `${meta.icon} ${meta.label}`;
+    if (step.duration)    txt += ` · ${step.duration}ms`;
+    if (step.docs_found !== undefined) txt += ` · ${step.docs_found} docs`;
+    tag.textContent = txt;
+    log.appendChild(tag);
+}
+
+// ════════════════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════════════════
+function addMsg(content, role) {
+    const c   = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `<div class="bubble">${esc(content)}</div>`;
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
+}
+
+function setBadge(text, state) {
+    const b = document.getElementById('execBadge');
+    b.textContent = text;
+    b.className = `exec-badge ${state}`;
+}
+
+function updateMem(mem) {
+    document.getElementById('memFill').style.width  = mem.percentage + '%';
+    document.getElementById('memCount').textContent = mem.total_messages;
+    document.getElementById('memPct').textContent   = Math.round(mem.percentage) + '%';
+}
+
+async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const btn   = document.getElementById('sendBtn');
+    const msg   = input.value.trim();
+    if (!msg) return;
+
+    addMsg(msg, 'user');
+    input.value = '';
+    btn.disabled = true;
+    setBadge('Running...', 'running');
+    resetAll();
+
+    // Loading indicator
+    const loadDiv = document.createElement('div');
+    loadDiv.className = 'msg system';
+    loadDiv.innerHTML = '<div class="bubble">⏳ Processing...</div>';
+    document.getElementById('messages').appendChild(loadDiv);
+    document.getElementById('messages').scrollTop = 99999;
+
+    // Clear step log
+    document.getElementById('stepLog').innerHTML = '<span class="step-empty">Executing pipeline...</span>';
+
+    try {
+        const res  = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({message: msg})
+        });
+        const data = await res.json();
+        loadDiv.remove();
+
+        if (data.success) {
+            document.getElementById('stepLog').innerHTML = '';
+            runWorkflow(data.workflow_steps, () => {
+                addMsg(data.response, 'assistant');
+                updateMem(data.memory);
+                setBadge('Done ✓', 'done');
+            });
+        } else {
+            addMsg('Error: ' + data.error, 'system');
+            setBadge('Error', 'error');
+        }
+    } catch(err) {
+        loadDiv.remove();
+        addMsg('Error: ' + err.message, 'system');
+        setBadge('Error', 'error');
+    } finally {
+        btn.disabled = false;
+        input.focus();
+    }
+}
+
+async function clearChat() {
+    if (!confirm('Clear conversation?')) return;
+    await fetch('/api/clear', {method:'POST'});
+    document.getElementById('messages').innerHTML =
+        '<div class="msg system"><div class="bubble">Cleared. Start fresh! 🎉</div></div>';
+    updateMem({total_messages:0, percentage:0});
+    resetAll();
+    setBadge('Idle','');
+    document.getElementById('stepLog').innerHTML =
+        '<span class="step-empty">Run a query to see execution log</span>';
+}
+
+async function showMemory() {
+    const res = await fetch('/api/memory');
+    const m   = await res.json();
+    alert(`Memory: ${m.total_messages}/${m.max_capacity} messages (${Math.round(m.percentage)}%)\nUser: ${m.user_messages}  |  Assistant: ${m.assistant_messages}`);
+}
+
+function esc(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('msgInput').focus();
+});
+</script>
 </body>
 </html>
